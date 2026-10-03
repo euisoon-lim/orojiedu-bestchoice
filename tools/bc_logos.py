@@ -84,7 +84,7 @@ def build(only=None):
         m={k:v for k,v in m.items() if k in keys}
     out={}; outw={}; sheet=[]
     for name,f in m.items():
-        uri,im=process(os.path.join(HERE,'logos',f)); out[name]=uri; sheet.append((name,im))
+        uri,im=process(os.path.join(HERE,'..','logos',f)); out[name]=uri; sheet.append((name,im))
         outw[name]=to_uri(to_white(im))
     # 검수용 시트
     cols=5; cw=240; ch=100
