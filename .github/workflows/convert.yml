@@ -1,0 +1,53 @@
+name: 베스트 초이스 변환
+
+on:
+  repository_dispatch:
+    types: [bestchoice_upload]        # 업로드 페이지(Supabase)에서 보내는 신호
+  push:
+    paths: ['inbox/**']               # 수동: inbox/ 에 PPTX 커밋해도 동작
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'inbox/ 안의 PPTX 파일명'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bestchoice
+  cancel-in-progress: false
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install python-pptx pillow
+      - name: PPTX 가져오기
+        id: get
+        env:
+          URL: ${{ github.event.client_payload.url }}
+          NAME: ${{ github.event.client_payload.name || inputs.file }}
+        run: |
+          mkdir -p inbox
+          if [ -n "$URL" ]; then
+            FN="inbox/${NAME:-upload.pptx}"
+            curl -fsSL "$URL" -o "$FN"
+          else
+            FN="${NAME:+inbox/$NAME}"
+            [ -z "$FN" ] && FN=$(ls -t inbox/*.pptx | head -1)
+          fi
+          echo "file=$FN" >> $GITHUB_OUTPUT
+          echo "사용 파일: $FN"
+      - name: 변환
+        run: python3 tools/build_data.py "${{ steps.get.outputs.file }}"
+      - name: 커밋
+        run: |
+          git config user.name "bestchoice-bot"
+          git config user.email "bot@orojiedu"
+          git add data inbox
+          git diff --cached --quiet || git commit -m "베스트 초이스 데이터 갱신: $(basename "${{ steps.get.outputs.file }}")"
+          git push
