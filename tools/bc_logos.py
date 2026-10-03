@@ -38,6 +38,13 @@ def process(path):
         im=im.crop((max(0,bbox[0]-pad),max(0,bbox[1]-pad),min(im.width,bbox[2]+pad),min(im.height,bbox[3]+pad)))
     r=H/im.height
     im=im.resize((max(1,round(im.width*r)),H),Image.LANCZOS)
+    # v6.1: 시각적 크기 통일 — 가로로 긴 워드마크는 bbox 기하평균(sqrt(w*h)) 기준으로 축소해 투명 캔버스(높이 H)에 세로 중앙 배치
+    REF=H*(4.5**0.5)            # 가로:세로 4.5:1 로고를 기준 크기로
+    s=(im.width*im.height)**0.5
+    f=max(0.70,min(1.0,REF/s))
+    if f<0.995:
+        sm=im.resize((max(1,round(im.width*f)),max(1,round(H*f))),Image.LANCZOS)
+        cv=Image.new('RGBA',(sm.width,H),(0,0,0,0)); cv.alpha_composite(sm,(0,(H-sm.height)//2)); im=cv
     buf=io.BytesIO(); im.save(buf,'WEBP',quality=82,method=6)
     return 'data:image/webp;base64,'+base64.b64encode(buf.getvalue()).decode(), im
 
@@ -77,7 +84,7 @@ def build(only=None):
         m={k:v for k,v in m.items() if k in keys}
     out={}; outw={}; sheet=[]
     for name,f in m.items():
-        uri,im=process(os.path.join(HERE,'..','logos',f)); out[name]=uri; sheet.append((name,im))
+        uri,im=process(os.path.join(HERE,'logos',f)); out[name]=uri; sheet.append((name,im))
         outw[name]=to_uri(to_white(im))
     # 검수용 시트
     cols=5; cw=240; ch=100
