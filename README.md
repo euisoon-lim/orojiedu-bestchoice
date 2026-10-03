@@ -8,3 +8,12 @@
 - `data/`   : 결과 JSON (`latest.json` = 현재 반영본, `YYYY-MM.json` = 월별 이력)
 
 수동 실행: Actions → "베스트 초이스 변환" → Run workflow (inbox 최신 파일 사용)
+
+## 아임웹 코드 (imweb/)
+- `베스트초이스_v5.2_아임웹바디코드.txt` — 베스트 초이스 페이지. `data/latest.json`을 읽어 렌더(월간 교체 불필요)
+- `베스트초이스_업로드페이지_v1.0_아임웹바디코드.txt` — /bestchoice-upload 페이지. 비밀번호 + PPTX 드래그 → 자동 반영
+
+## Supabase (오로지교육 프로젝트)
+- `supabase_setup.sql` — 버킷 `bestchoice-inbox`, 테이블 `bestchoice_config`(passcode/gh_pat/gh_repo), `bestchoice_uploads`
+- `supabase_edge_function_bestchoice-upload.ts` — Edge Function `bestchoice-upload` (Verify JWT OFF)
+- 비밀번호 변경: `update bestchoice_config set value='새비밀번호' where key='passcode';`

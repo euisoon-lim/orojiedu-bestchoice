@@ -1,0 +1,187 @@
+<!-- ================================================================
+  오로지교육 베스트 초이스 — PPTX 업로드 페이지 v1.0
+  ----------------------------------------------------------------
+  v1.0  최초 작성. 비밀번호 → PPTX 드래그 업로드(Supabase Storage) → GitHub Actions 자동 변환
+        → 반영 상태 실시간 표시. 아임웹 페이지(/bestchoice-upload) 바디 속성에 그대로 붙여넣기.
+  연결: Supabase Edge Function bestchoice-upload (오로지교육 프로젝트)
+================================================================ -->
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+#bcUp{--t:#f2f0f8;--s:#a9a4bd;--m:#6f6a86;--line:rgba(255,255,255,.10);--line2:rgba(255,255,255,.2);--acc:#b79cff;--acc2:#8b5cf6;--ok:#34d399;--bad:#f87171;--panel:rgba(255,255,255,.03);
+  font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif !important;color:var(--t) !important;max-width:720px;margin:0 auto;padding:40px 20px 96px !important;letter-spacing:-.01em;line-height:1.55;box-sizing:border-box}
+html.light-theme #bcUp, body.light-theme #bcUp{--t:#1a1830;--s:#5b5775;--m:#8d89a3;--line:rgba(26,24,48,.10);--line2:rgba(26,24,48,.22);--acc:#6d3df0;--acc2:#6d3df0;--ok:#059669;--bad:#dc2626;--panel:rgba(26,24,48,.03)}
+#bcUp *{box-sizing:border-box}
+#bcUp .eb{font-size:12px !important;font-weight:600 !important;letter-spacing:.12em;text-transform:uppercase;color:var(--acc) !important;margin:0 0 12px !important}
+#bcUp h2{font-size:34px !important;font-weight:800 !important;letter-spacing:-.04em;line-height:1.1 !important;margin:0 0 10px !important;color:var(--t) !important}
+#bcUp .desc{font-size:14.5px !important;color:var(--s) !important;margin:0 0 28px !important}
+#bcUp .card{border:1px solid var(--line);border-radius:18px;padding:22px;background:var(--panel);margin-bottom:16px}
+#bcUp label{display:block;font-size:12.5px !important;font-weight:600 !important;color:var(--m) !important;margin-bottom:8px}
+#bcUp input[type=password]{width:100%;height:48px;border:1px solid var(--line2) !important;border-radius:12px;background:transparent !important;color:var(--t) !important;font:inherit !important;font-size:16px !important;padding:0 14px !important;outline:none;box-shadow:none !important}
+#bcUp input[type=password]:focus{border-color:var(--acc) !important}
+#bcUp .drop{margin-top:16px;border:1.5px dashed var(--line2);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .15s;color:var(--s) !important}
+#bcUp .drop.over{border-color:var(--acc);background:rgba(139,92,246,.08)}
+#bcUp .drop.dis{opacity:.45;cursor:not-allowed}
+#bcUp .drop b{display:block;font-size:17px !important;font-weight:700 !important;color:var(--t) !important;margin-bottom:6px}
+#bcUp .drop span{font-size:13px !important}
+#bcUp .drop input{display:none}
+#bcUp .file{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font-size:14px !important}
+#bcUp .file small{color:var(--m) !important;font-size:12.5px !important}
+#bcUp .btn{appearance:none;border:0;background:var(--t) !important;color:#0b0914 !important;font:inherit !important;font-size:15px !important;font-weight:700 !important;height:50px;width:100%;border-radius:999px;cursor:pointer;margin-top:16px;transition:opacity .15s}
+html.light-theme #bcUp .btn, body.light-theme #bcUp .btn{background:#1a1830 !important;color:#fff !important}
+#bcUp .btn:disabled{opacity:.4;cursor:not-allowed}
+#bcUp .bar{height:4px;border-radius:2px;background:var(--line);margin-top:16px;overflow:hidden;display:none}
+#bcUp .bar i{display:block;height:100%;width:0;background:var(--acc2);transition:width .3s}
+#bcUp .steps{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+#bcUp .steps li{display:flex;align-items:center;gap:10px;font-size:14px !important;color:var(--m) !important}
+#bcUp .steps li::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--line2);flex:none}
+#bcUp .steps li.on{color:var(--t) !important}#bcUp .steps li.on::before{background:var(--acc);box-shadow:0 0 0 4px rgba(139,92,246,.2)}
+#bcUp .steps li.done{color:var(--s) !important}#bcUp .steps li.done::before{background:var(--ok)}
+#bcUp .steps li.fail{color:var(--bad) !important}#bcUp .steps li.fail::before{background:var(--bad)}
+#bcUp .msg{margin-top:14px;font-size:13.5px !important;min-height:20px}
+#bcUp .msg.err{color:var(--bad) !important}#bcUp .msg.ok{color:var(--ok) !important}
+#bcUp .kv{display:grid;grid-template-columns:120px 1fr;gap:8px 14px;font-size:14px !important}
+#bcUp .kv dt{color:var(--m) !important;margin:0}#bcUp .kv dd{margin:0;color:var(--t) !important}
+#bcUp .hist{margin:0;padding:0;list-style:none}
+#bcUp .hist li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px !important;color:var(--s) !important}
+#bcUp .hist li:first-child{border-top:0}
+#bcUp .hist li em{font-style:normal;color:var(--m) !important;white-space:nowrap}
+#bcUp .tag{font-size:11.5px !important;font-weight:700 !important;padding:3px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--s) !important;white-space:nowrap}
+#bcUp .tag.ok{color:var(--ok) !important;border-color:var(--ok)}#bcUp .tag.bad{color:var(--bad) !important;border-color:var(--bad)}#bcUp .tag.run{color:var(--acc) !important;border-color:var(--acc)}
+#bcUp a{color:var(--acc) !important}
+#bcUp .foot{font-size:12px !important;color:var(--m) !important;margin-top:10px}
+@media (max-width:600px){#bcUp{padding:24px 16px 64px !important}#bcUp h2{font-size:28px !important}#bcUp .kv{grid-template-columns:96px 1fr}}
+</style>
+
+<div id="bcUp">
+  <p class="eb">Best Choice · 월간 자료 업로드</p>
+  <h2>상품비교분석 PPTX 업로드</h2>
+  <p class="desc">웰스에듀 '베스트 초이스화면' PPTX를 올리면 자동으로 변환되어 오로지교육 베스트 초이스 페이지에 반영됩니다. 보통 1~3분 걸립니다.</p>
+
+  <div class="card">
+    <label for="bcUpPw">비밀번호</label>
+    <input type="password" id="bcUpPw" placeholder="업로드 비밀번호" autocomplete="off">
+    <div class="drop dis" id="bcUpDrop">
+      <input type="file" id="bcUpFile" accept=".pptx">
+      <b>여기에 PPTX 파일을 끌어다 놓거나 클릭해서 선택</b>
+      <span>파일명 예: 26년 11월 상품 비교 분석 가이드_ 베스트 초이스화면.pptx</span>
+    </div>
+    <div class="file" id="bcUpInfo" style="display:none"><span id="bcUpName"></span><small id="bcUpSize"></small></div>
+    <button class="btn" id="bcUpBtn" disabled>업로드하고 반영하기</button>
+    <div class="bar" id="bcUpBar"><i></i></div>
+    <ul class="steps" id="bcUpSteps" style="display:none">
+      <li data-s="1">파일 업로드</li>
+      <li data-s="2">변환 요청 전달</li>
+      <li data-s="3">GitHub에서 변환 중</li>
+      <li data-s="4">베스트 초이스 페이지 반영</li>
+    </ul>
+    <div class="msg" id="bcUpMsg"></div>
+  </div>
+
+  <div class="card">
+    <p class="eb" style="margin-bottom:14px !important">현재 반영본</p>
+    <dl class="kv" id="bcUpLatest"><dt>상태</dt><dd>비밀번호를 입력하면 표시됩니다</dd></dl>
+  </div>
+  <div class="card">
+    <p class="eb" style="margin-bottom:10px !important">최근 업로드 · 변환 이력</p>
+    <ul class="hist" id="bcUpHist"><li>—</li></ul>
+    <p class="foot">변환 실패 시 파일명 규칙(…베스트 초이스화면.pptx)과 슬라이드 구성(개요 → 타사 비교표 → 선정 이유)을 확인해 주세요.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var FN='https://aztywbgtugactoumvmum.supabase.co/functions/v1/bestchoice-upload';
+  var $=function(id){return document.getElementById(id);};
+  var pw=$('bcUpPw'), drop=$('bcUpDrop'), fin=$('bcUpFile'), btn=$('bcUpBtn'), bar=$('bcUpBar'), steps=$('bcUpSteps'), msg=$('bcUpMsg');
+  var file=null, busy=false, pollTimer=null;
+
+  function api(b){ return fetch(FN,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(j){ if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; });}); }
+  function say(t,cls){ msg.textContent=t||''; msg.className='msg'+(cls?' '+cls:''); }
+  function step(n,state){ var li=steps.querySelector('[data-s="'+n+'"]'); if(!li) return; li.className=state||''; }
+  function fmt(b){ return b>1048576?(b/1048576).toFixed(1)+' MB':Math.round(b/1024)+' KB'; }
+  function ko(iso){ try{ return new Date(iso).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  /* 비밀번호 기억(이 브라우저 세션 동안) */
+  try{ var saved=sessionStorage.getItem('bcUpPw'); if(saved){ pw.value=saved; } }catch(e){}
+  function unlock(){ var ok=pw.value.trim().length>0; drop.classList.toggle('dis',!ok); btn.disabled=!(ok&&file&&!busy); }
+  pw.addEventListener('input',unlock);
+  pw.addEventListener('change',function(){ try{ sessionStorage.setItem('bcUpPw',pw.value); }catch(e){} refresh(); });
+
+  /* 파일 선택 */
+  function pick(f){
+    if(!f) return;
+    if(!/\.pptx$/i.test(f.name)){ say('PPTX 파일만 업로드할 수 있습니다.','err'); return; }
+    file=f; $('bcUpName').textContent=f.name; $('bcUpSize').textContent=fmt(f.size); $('bcUpInfo').style.display='flex'; say(''); unlock();
+  }
+  drop.addEventListener('click',function(){ if(!drop.classList.contains('dis')) fin.click(); });
+  fin.addEventListener('change',function(){ pick(fin.files[0]); });
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); if(!drop.classList.contains('dis')) drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop',function(e){ if(drop.classList.contains('dis')) return; pick(e.dataTransfer.files[0]); });
+
+  /* 업로드 → 알림 → 상태 폴링 */
+  btn.addEventListener('click',function(){
+    if(!file||busy) return; busy=true; unlock();
+    steps.style.display='flex'; [1,2,3,4].forEach(function(n){step(n,'');}); step(1,'on'); bar.style.display='block'; bar.firstElementChild.style.width='5%'; say('업로드 URL 발급 중…');
+    var pass=pw.value, signed, path;
+    api({action:'sign',passcode:pass,filename:file.name}).then(function(s){
+      signed=s; path=s.path; say('파일 업로드 중…');
+      return new Promise(function(res,rej){
+        var x=new XMLHttpRequest(); x.open('PUT',s.signedUrl,true);
+        x.setRequestHeader('Content-Type','application/vnd.openxmlformats-officedocument.presentationml.presentation');
+        x.setRequestHeader('x-upsert','false');
+        x.upload.onprogress=function(e){ if(e.lengthComputable) bar.firstElementChild.style.width=(5+Math.round(e.loaded/e.total*55))+'%'; };
+        x.onload=function(){ (x.status>=200&&x.status<300)?res():rej(new Error('스토리지 업로드 실패 ('+x.status+')')); };
+        x.onerror=function(){ rej(new Error('네트워크 오류로 업로드하지 못했습니다.')); };
+        x.send(file);
+      });
+    }).then(function(){
+      step(1,'done'); step(2,'on'); bar.firstElementChild.style.width='65%'; say('변환 요청 전달 중…');
+      return api({action:'notify',passcode:pass,path:path,filename:file.name,size:file.size});
+    }).then(function(){
+      step(2,'done'); step(3,'on'); bar.firstElementChild.style.width='75%'; say('GitHub에서 변환 중입니다. 보통 1~2분 걸려요. 이 화면을 열어두면 완료를 알려드립니다.');
+      poll(Date.now());
+    }).catch(function(e){
+      var cur=steps.querySelector('li.on'); if(cur) cur.className='fail';
+      say('실패: '+e.message,'err'); bar.style.display='none'; busy=false; unlock();
+    });
+  });
+
+  var baseGen=null;
+  function poll(startedAt){
+    clearTimeout(pollTimer);
+    api({action:'status',passcode:pw.value}).then(function(st){
+      render(st);
+      var run=(st.runs||[])[0];
+      var fresh = st.latest && st.latest.generated_at && new Date(st.latest.generated_at).getTime() > startedAt-60000;
+      if(run && run.status==='completed' && run.conclusion==='success' && fresh){
+        step(3,'done'); step(4,'done'); bar.firstElementChild.style.width='100%';
+        say('반영 완료 — '+(st.latest.month||'')+'호가 베스트 초이스 페이지에 적용되었습니다.','ok');
+        busy=false; file=null; $('bcUpInfo').style.display='none'; fin.value=''; unlock(); return;
+      }
+      if(run && run.status==='completed' && run.conclusion!=='success' && new Date(run.created_at).getTime()>startedAt-60000){
+        step(3,'fail'); say('변환 실패 — PPTX 구성을 확인해 주세요. 상세: ','err');
+        var a=document.createElement('a'); a.href=run.url; a.target='_blank'; a.textContent='GitHub 실행 로그'; msg.appendChild(a);
+        bar.style.display='none'; busy=false; unlock(); return;
+      }
+      if(Date.now()-startedAt > 6*60*1000){ say('아직 처리 중입니다. 잠시 후 이 페이지를 새로고침해 반영 상태를 확인해 주세요.'); busy=false; unlock(); return; }
+      pollTimer=setTimeout(function(){ poll(startedAt); }, 8000);
+    }).catch(function(){ pollTimer=setTimeout(function(){ poll(startedAt); }, 10000); });
+  }
+
+  /* 상태 표시 */
+  function render(st){
+    var L=st.latest, kv='';
+    if(L){ kv+='<dt>반영 호</dt><dd><b>'+esc(L.month)+'</b></dd><dt>원본 파일</dt><dd>'+esc(L.source||'')+'</dd><dt>갱신 시각</dt><dd>'+esc(ko(L.generated_at))+'</dd>'; }
+    else kv+='<dt>상태</dt><dd>반영 데이터를 읽지 못했습니다</dd>';
+    $('bcUpLatest').innerHTML=kv;
+    var h='';
+    (st.uploads||[]).forEach(function(u){ h+='<li><span>'+esc(u.file_name)+(u.size_bytes?' <em>'+fmt(u.size_bytes)+'</em>':'')+'</span><span><em>'+esc(ko(u.uploaded_at))+'</em> <span class="tag '+(u.dispatched?'ok':'bad')+'">'+(u.dispatched?'전달됨':'전달 실패')+'</span></span></li>'; });
+    (st.runs||[]).slice(0,3).forEach(function(r){ var c=r.status!=='completed'?'run':(r.conclusion==='success'?'ok':'bad'); var t=r.status!=='completed'?'변환 중':(r.conclusion==='success'?'변환 성공':'변환 실패'); h+='<li><span>변환 실행 · <a href="'+esc(r.url)+'" target="_blank" rel="noopener">로그</a></span><span><em>'+esc(ko(r.created_at))+'</em> <span class="tag '+c+'">'+t+'</span></span></li>'; });
+    $('bcUpHist').innerHTML=h||'<li>이력이 없습니다</li>';
+  }
+  function refresh(){ if(!pw.value) return; api({action:'status',passcode:pw.value}).then(render).catch(function(e){ say(e.message,'err'); }); }
+  unlock(); if(pw.value) refresh();
+})();
+</script>
