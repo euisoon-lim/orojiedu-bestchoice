@@ -75,7 +75,8 @@ def table_to_grid(tbl):
 
 def convert(path):
     prs = Presentation(path)
-    m = re.search(r'(\d{2})년\s*(\d{1,2})월', path)
+    import unicodedata
+    m = re.search(r'(\d{2})년\s*(\d{1,2})월', unicodedata.normalize('NFC', path))   # macOS 파일명(NFD) 대응
     month = f'20{m.group(1)}년 {int(m.group(2))}월' if m else ''
 
     sections = []   # [{name, categories:[...]}]
@@ -132,7 +133,10 @@ def convert(path):
                     'name': cat_name, 'icon': pick_icon(cat_name), 'label': '',
                     'products': prods, 'table': None, 'notes': [], 'detail': {},
                 })
-            sections.append(cur)
+            if cur['categories']:
+                sections.append(cur)
+            else:
+                cur = None; any_overview = False   # 개요 인식 실패 → 비교표에서 자동 생성 모드로
             continue
 
         title = next((t for t in texts if re.match(r'^(타사\s*비교표|선정\s*이유)', t.strip())), None)

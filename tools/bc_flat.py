@@ -135,7 +135,8 @@ def flat_overview(flat, prs, tol=1.0):
         x0, y0, x1, y1 = _box(s, W, H); t = _txt(s)
         if y0 < 11 or y0 > 92: continue
         if t: texts.append((x0, y0, x1, y1, t, s))
-        if not t and (x1 - x0) >= 6 and (y1 - y0) >= 6: rects.append((x0, y0, x1, y1))
+        # 배경 사각형뿐 아니라 텍스트가 든 박스 자체도 칸 후보(박스에 바로 글이 들어간 양식)
+        if (x1 - x0) >= 6 and (y1 - y0) >= 6: rects.append((x0, y0, x1, y1))
     narrow = [r for r in rects if 6 <= (r[2] - r[0]) <= 22 and (r[3] - r[1]) <= 25]
     out = []
     for n in sorted(narrow, key=lambda r: r[1]):
@@ -152,7 +153,7 @@ def flat_overview(flat, prs, tol=1.0):
                 for line in _paras(tb[5]):
                     if re.search(DASH, line): prods.append(re.sub(r'\s+', ' ', line).strip())
         cat = re.sub(r'\s*/\s*', '/', cat).strip()
-        if cat and prods: out.append((cat, prods))
+        if cat and prods and not any(o[0] == cat for o in out): out.append((cat, prods))
     return out
 
 # ─────────────────────────────────────────────────────────────────────────────
