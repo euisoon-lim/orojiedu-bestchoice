@@ -12,6 +12,10 @@
 import sys, re, json
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+try:
+    import bc_flat          # 평탄화 PPTX(표/그룹이 도형으로 풀린 파일) 복원기
+except ImportError:
+    bc_flat = None
 
 DASH = r'[–\-—]'
 LABELS = {'상품특징': 'feature', '선정이유': 'reason', '세일즈포인트': 'sales'}
@@ -85,7 +89,22 @@ def convert(path):
         joined = '\n'.join(texts)
 
         # ── 1) 섹션 개요 슬라이드 ─────────────────────────────
-        if 'BESTCHOICE' in norm(joined) and any(s.shape_type == MSO_SHAPE_TYPE.GROUP for s in shapes):
+        is_overview = 'BESTCHOICE' in norm(joined) and (any(s.shape_type == MSO_SHAPE_TYPE.GROUP for s in shapes) or bc_flat)
+        if is_overview and not any(s.shape_type == MSO_SHAPE_TYPE.GROUP for s in shapes):
+            # 그룹이 풀린 개요 슬라이드: 좌표로 (카테고리, 상품) 복원
+            pairs = bc_flat.flat_overview(flat, prs)
+            if pairs:
+                sec_name = next((tt.strip() for tt in texts if tt.strip() in ('생명보험', '손해보험', '제3보험')), '')
+                if not sec_name:
+                    mm = re.search(r'(생명보험|손해보험)', joined); sec_name = mm.group(1) if mm else f'섹션{len(sections)+1}'
+                cur = {'name': sec_name, 'categories': []}; any_overview = True
+                for cat_name, lines in pairs:
+                    prods = [dict(zip(('insurer', 'name'), split_product(l))) for l in lines]
+                    cur['categories'].append({'name': cat_name, 'icon': pick_icon(cat_name), 'label': '', 'products': prods, 'table': None, 'notes': [], 'detail': {}})
+                sections.append(cur)
+                print(f'[안내] slide {sidx}: 평탄화 개요 → {sec_name} {len(pairs)}개 카테고리', file=sys.stderr)
+                continue
+        if is_overview:
             sec_name = ''
             for t in texts:
                 tt = t.strip()
@@ -170,8 +189,14 @@ def convert(path):
 
         if kind == 'table':
             tbl_shape = next((s for s in flat if getattr(s, 'has_table', False) and s.has_table), None)
+            tb = None
             if tbl_shape is not None:
                 cat['table'] = table_to_grid(tbl_shape.table)
+            elif bc_flat:
+                g = bc_flat.flat_table(flat, prs)
+                if g:
+                    tb = g.pop('bounds'); cat['table'] = g
+                    print(f'[안내] slide {sidx}: 평탄화 표 복원 {g["cols"]}열 × {len(g["rows"])}행', file=sys.stderr)
             # 우측 상단 라벨(카테고리 보조명) + 각주
             for s in flat:
                 if not s.has_text_frame or s is tbl_shape:
@@ -179,6 +204,12 @@ def convert(path):
                 t = text(s)
                 if not t or t == title or re.fullmatch(r'\d+', t):
                     continue
+                if s.top > prs.slide_height * 0.91:
+                    continue   # 하단 고정 문구(출처·면책)
+                if tb:   # 복원된 표 영역 안의 텍스트는 각주가 아님
+                    cx, cy = (s.left + s.width / 2) / prs.slide_width * 100, (s.top + s.height / 2) / prs.slide_height * 100
+                    if tb[0] - 1 <= cx <= tb[2] + 1 and tb[1] - 1 <= cy <= tb[3] + 1:
+                        continue
                 if s.top < prs.slide_height * 0.06 and s.left > prs.slide_width * 0.6:
                     cat['label'] = ' '.join(paras(s))          # 우측 상단 카테고리 라벨
                 else:
@@ -199,6 +230,10 @@ def convert(path):
                 if key and s.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
                     detail[key] = [re.sub(r'\s+', ' ', p) for p in ps]
                     key = None
+            if len(detail) < 3 and bc_flat:
+                d2 = bc_flat.flat_reason(flat, prs)
+                if len(d2) > len(detail):
+                    detail = d2; print(f'[안내] slide {sidx}: 평탄화 선정이유 복원 {list(detail)}', file=sys.stderr)
             cat['detail'] = detail
 
     return {'month': month, 'sections': sections}
