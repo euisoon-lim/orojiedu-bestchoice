@@ -45,9 +45,10 @@ jobs:
       - name: 변환
         run: python3 tools/build_data.py "${{ steps.get.outputs.file }}"
       - name: 커밋
+        if: always()
         run: |
           git config user.name "bestchoice-bot"
           git config user.email "bot@orojiedu"
           git add data inbox
-          git diff --cached --quiet || git commit -m "베스트 초이스 데이터 갱신: $(basename "${{ steps.get.outputs.file }}")"
+          git diff --cached --quiet || git commit -m "베스트 초이스 데이터 갱신: $(basename "${{ steps.get.outputs.file }}") (${{ job.status }})"
           git push

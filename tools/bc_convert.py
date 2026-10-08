@@ -76,6 +76,7 @@ def convert(path):
 
     sections = []   # [{name, categories:[...]}]
     cur = None
+    any_overview = False
 
     for sidx, slide in enumerate(prs.slides, 1):
         shapes = list(slide.shapes)
@@ -94,6 +95,7 @@ def convert(path):
                 mm = re.search(r'(생명보험|손해보험)', joined)
                 sec_name = mm.group(1) if mm else f'섹션{len(sections)+1}'
             cur = {'name': sec_name, 'categories': []}
+            any_overview = True
             groups = [s for s in shapes if s.shape_type == MSO_SHAPE_TYPE.GROUP]
             groups.sort(key=lambda g: (g.top, g.left))
             for g in groups:
@@ -114,21 +116,54 @@ def convert(path):
             sections.append(cur)
             continue
 
-        if cur is None:
-            continue
-
         title = next((t for t in texts if re.match(r'^(타사\s*비교표|선정\s*이유)', t.strip())), None)
         if not title:
             continue
         kind = 'table' if title.strip().startswith('타사') else 'reason'
         body = re.sub(r'^(타사\s*비교표|선정\s*이유)\s*_?\s*', '', title.strip())
         ins, pn = split_product(body)
+        if not ins or not pn:
+            continue   # '타사 비교표_3대진단 ... 추천사' 같은 부록 표는 건너뜀
+
+        # 개요 슬라이드가 전혀 없는 PPTX: 보험사명으로 생보/손보 섹션을 자동 생성
+        auto = not any_overview
+        if cur is None or (auto and kind == 'table'):
+            sec_name = '생명보험' if re.search(r'생명|라이프', ins) else '손해보험'
+            found = next((s for s in sections if s['name'] == sec_name), None)
+            if found is None:
+                found = {'name': sec_name, 'categories': []}; sections.append(found)
+            cur = found
 
         # 카테고리 매칭: BEST 상품 보험사명
         cat = next((c for c in cur['categories'] if c['products'] and norm(c['products'][0]['insurer']) == norm(ins)), None)
         if cat is None:
             # 보조: 상품명 앞 6글자 일치
             cat = next((c for c in cur['categories'] if c['products'] and norm(c['products'][0]['name'])[:6] == norm(pn)[:6]), None)
+        if cat is None and kind == 'table' and auto:
+            # 폴백: 개요 슬라이드가 없을 때 비교표에서 카테고리 자동 생성(헤더행 보험사 + '상품명' 행)
+            tbl_shape = next((s for s in flat if getattr(s, 'has_table', False) and s.has_table), None)
+            if tbl_shape is not None:
+                g = table_to_grid(tbl_shape.table)
+                hdr = [c for c in g['rows'][0] if c['c'] > 0 and c['t']]
+                prow = next((r for r in g['rows'][1:] if r and norm(r[0]['t']) == '상품명'), None)
+                names = [c['t'] for c in prow[1:]] if prow else []
+                prods = []
+                for i, hc in enumerate(hdr):
+                    nm = re.sub(r'\s+', ' ', names[i]).strip() if i < len(names) else ''
+                    prods.append({'insurer': re.sub(r'\s+', ' ', hc['t']).strip(), 'name': nm})
+                if prods and norm(prods[0]['insurer']) != norm(ins):
+                    prods[0] = {'insurer': ins, 'name': pn}
+                if not prods:
+                    prods = [{'insurer': ins, 'name': pn}]
+                label = ''
+                for s in flat:
+                    if s.has_text_frame and s is not tbl_shape and s.top < prs.slide_height * 0.06 and s.left > prs.slide_width * 0.6:
+                        tt = text(s)
+                        if tt and tt != title and not re.fullmatch(r'\d+', tt): label = ' '.join(paras(s))
+                cname = label or pn
+                cat = {'name': cname, 'icon': pick_icon(cname), 'label': '', 'products': prods, 'table': None, 'notes': [], 'detail': {}}
+                cur['categories'].append(cat)
+                print(f'[안내] slide {sidx}: 개요 없음 → 비교표에서 카테고리 생성 "{cname}" ({cur["name"]})', file=sys.stderr)
         if cat is None:
             print(f'[경고] slide {sidx}: 카테고리 매칭 실패 → {title}', file=sys.stderr)
             continue
