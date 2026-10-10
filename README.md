@@ -10,7 +10,7 @@
 수동 실행: Actions → "베스트 초이스 변환" → Run workflow (inbox 최신 파일 사용)
 
 ## 아임웹 코드 (imweb/)
-- `bestchoice_v6.6.txt`(최신) / 이전 버전 v5.2~v6.5 — 베스트 초이스 페이지. `data/latest.json`을 읽어 렌더(월간 교체 불필요)
+- `bestchoice_v6.7.txt`(최신) / 이전 버전 v5.2~v6.6 — 베스트 초이스 페이지. `data/latest.json`을 읽어 렌더(월간 교체 불필요)
 - `베스트초이스_업로드페이지_v1.0_아임웹바디코드.txt` — /bestchoice-upload 페이지. 비밀번호 + PPTX 드래그 → 자동 반영
 
 ## Supabase (오로지교육 프로젝트)
