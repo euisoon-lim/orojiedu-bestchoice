@@ -157,8 +157,22 @@ def convert(path):
                 found = {'name': sec_name, 'categories': []}; sections.append(found)
             cur = found
 
-        # 카테고리 매칭: BEST 상품 보험사명
-        cat = next((c for c in cur['categories'] if c['products'] and norm(c['products'][0]['insurer']) == norm(ins)), None)
+        # 카테고리 매칭: BEST 상품 보험사명 (같은 보험사가 여러 카테고리의 BEST 이면 상품명으로 구분)
+        cands = [c for c in cur['categories'] if c['products'] and norm(c['products'][0]['insurer']) == norm(ins)]
+        cat = None
+        if len(cands) == 1:
+            cat = cands[0]
+        elif cands:
+            def sim(c):
+                a, b = norm(c['products'][0]['name']), norm(pn)
+                n = 0
+                while n < min(len(a), len(b)) and a[n] == b[n]: n += 1
+                return n
+            best = max(cands, key=sim)
+            if sim(best) >= 4:
+                cat = best
+            else:   # 상품명 표기가 달라 구분이 안 되면, 아직 채워지지 않은 카테고리에 순서대로
+                cat = next((c for c in cands if (c['table'] is None if kind == 'table' else not c['detail'])), cands[0])
         if cat is None:
             # 보조: 상품명 앞 6글자 일치
             cat = next((c for c in cur['categories'] if c['products'] and norm(c['products'][0]['name'])[:6] == norm(pn)[:6]), None)

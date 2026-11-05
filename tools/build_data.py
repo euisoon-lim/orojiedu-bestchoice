@@ -24,6 +24,11 @@ if problems:
 
 insurers=[p['insurer'] for s in data['sections'] for c in s['categories'] for p in c['products']]
 logos,logos_w=bc_logos.build(only=insurers)
+# 데이터에 적힌 표기(예: 농협손해보험)가 로고 맵 키(NH농협손해보험)와 다르면 그 표기로도 키 추가
+_m=json.load(open(os.path.join(HERE,'logos_map.json'),encoding='utf-8'))
+for _x in set(insurers):
+    _k=bc_logos.resolve(_m,_x); _n=_x.replace(' ','')
+    if _k and _k in logos and _n not in logos: logos[_n]=logos[_k]; logos_w[_n]=logos_w[_k]
 m=json.load(open(os.path.join(HERE,'logos_map.json'),encoding='utf-8'))
 missing=sorted({x for x in insurers if bc_logos.resolve(m,x) is None})
 if missing: print('::warning::로고 없음(텍스트 표시): '+', '.join(missing))

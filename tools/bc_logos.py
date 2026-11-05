@@ -69,11 +69,13 @@ def to_uri(im,q=82):
 
 def resolve(m, name):
     n=(name or '').replace(' ','')
-    cands=[n, n.replace('손보','손해보험'), n.replace('생명보험','생명'), n.replace('손해보험','손보')]
+    cands=[n, n.replace('손보','손해보험'), n.replace('생명보험','생명'), n.replace('손해보험','손보'), 'NH'+n, n.replace('NH','')]
     for c in cands:
         if c in m: return c
     for k in m:
         if k.startswith(n) or n.startswith(k): return k
+    for k in m:   # 'NH농협손해보험' ↔ '농협손해보험' 처럼 영문 접두만 다른 경우
+        if k.endswith(n) or n.endswith(k): return k
     return None
 
 def build(only=None):
